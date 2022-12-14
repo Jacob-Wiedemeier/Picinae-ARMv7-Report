@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[twocolumn]{article}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
@@ -80,11 +80,11 @@
 \begin{document}
 
 \maketitle
-\begin{multicols}{2}
+
 
 \section*{\centering Intro / Motivation}
 \vspace{0.3cm}
-The main focus of this project is the creation of a novel ARM instruction decoder and lifter that takes ARMv7 assembly and lifts it to an intermediary language (IL), Picanae, that can be used for future works in proving the correctness of the ARM system.\\
+The main focus of this project is the creation of a novel ARM instruction decoder and lifter that takes ARMv7 assembly and lifts it to an intermediary language (IL), Picanae in Coq in this case, that can be used for future works in proving the correctness of the ARM system.\\
 
 ARM is the most widely used family of instruction set architectures, having a presence in the majority of smartphone processors. In addition, with Apple adopting the ARM architecture in its new M1 Chips, the need for security techniques that can guard against exploits is steadily increasing. Naturally, these techniques will need some way to verify correctness, hence the necessity of an ARM decoder and lifter.\\
 
@@ -105,13 +105,11 @@ We found that using the CPUlator tool was very tedious. It required us to manual
 We had to convert the representation of the assembled instructions from hexadecimal to decimal for compatability with the Picanae system. This did not change any of the operations we could perform on the representation. We can still use critical methods such as xbits and shift.\\
 
 Once we have the instruction represented as a decimal, we are ready to decode it. In order to decode the instruction, we have to first understand the instruction encoding, as explained in the \href{https://developer.arm.com/documentation/ddi0406/c}{ARM Architecture Reference Manual} [2]. The architecture manual includes a chapter on how the instructions are precisely encoded down to the bit. It follows a tree-like structure of instruction types such as data-processing, load/store, branches, etc., as seen in Figure 2.  Once you’ve followed a branch by matching the specified bits, all instructions are of that type. This might go on for one or more recursive levels. This tree models a decision tree, where the internal nodes make decisions and the leaves are the instructions themselves, which are combinations of matches on the bits of its binary representation.\\
-
-\begin{figure}[H]
-\includegraphics[width=\linewidth]{top-level_decode.png}\\
-Figure 2. The top-level decoding definition.
+\begin{figure*}[!ht]
 \centering
-\end{figure}
-
+\includegraphics[width=.5\textwidth]{top-level_decode.png}\\
+Figure 2. The top-level decoding definition.
+\end{figure*}
 After reading the reference manual for a few weeks, we had a general understanding of the characteristics of the encodings. A vast majority of the instructions encoding contained a 4-bit conditional value that represented the condition that the instruction should be executed on, such as EQUAL, NOT\_EQUAL, LESS\_THAN, ALWAYS, etc. These conditions are evaluated based on four flags: N, V, C, and Z. If the right flags are set then the condition is true and so the instruction is executed. However, almost all instructions other than the branches used the ALWAYS condition, so we opted to ignore the rest at the moment to focus our efforts at more critical points.\\
 
 Another thing we learned was how common objects like registers and immediate values were encoded within the instruction bytes. Registers, which can range from r0, r1, …, r14 are represented as the 4-bit value 0, 1, …, 14, respectively. Immediate values are directly placed in the instruction bytes as 5, 12, or 16-bit values, usually on the lower-end side. Hence, grabbing the registers and immediate values was as simple as using xbits, as seen in Figure 3.\\
@@ -127,17 +125,27 @@ Lifting the decoded instructions was straightforward when the instruction did no
 Most instruction have side-effects, however. This includes setting certain flags within the ASPR register or setting certain registers to certain values in-addition to its primary effect. The solution to the former was verbose. Take the CMP instruction for example: if the value within the register minus the immediate value is zero, then set the Z flag to 1, otherwise set the Z flag to 0. There are 3 other flags that need to be set based on certain conditions as well, but for this example we will only look at the Z flag. We can model this in Picanae IL using If statements and expressions as seen in Figure 4 and Figure 5.\\
 
 \begin{figure}[H]
+\centering
 \includegraphics[width=\linewidth]{handle_compare_definition.png}\\
 Figure 4. Part of the handle\_compare definition.
-\centering
-\end{figure}
 
+
+\end{figure}
 \begin{figure}[H]
-\includegraphics[width=\linewidth]{set_flag_example.png}\\
-Figure 5. Setting a particular flag.
 \centering
-\end{figure}
+\includegraphics[width=.7\linewidth]{set_flag_example.png}\\
+Figure 5. Setting a particular flag.
 
+\end{figure}
+With these side effects in mind, we were able to implement a structure that could generate a Picanae equivalent of the decoded ARMv7 instruction, with the IL statement generated fully describing the actions taken by the instruction on the processor, ie registers affected, operations executed, etc. The example provided in Figure 6 demonstrates how the decoded instructions correspond to their lifted counterpart. As you can see, the IL statement reveals all actions that the instruction is performing at time of execution, which is critical when proving correctness of a program's instructions
+\begin{figure*}[!ht]
+\centering
+\includegraphics[width=0.5\linewidth]{set_flag_example.png}\\
+Figure 6. Lifting decoded instructions to the intermediate language.
+
+\end{figure*}
+
+\newpage
 \section*{\centering Team Organization}
 \vspace{0.3cm}
 
@@ -200,10 +208,10 @@ We also very heavily relied on a previous implementation of a decoder and lifter
 \section*{\centering Citations}
 \vspace{0.3cm}
 
-[1] - CPUlator ARMv7 System Simulator. (2019, March 9). Retrieved December 13, 2022, from \\https://cpulator.01xz.net/?sys=arm\\
+[1] - CPUlator ARMv7 System Simulator. (2019, March 9). Retrieved December 13, 2022, from https://cpulator.01xz.net/?sys=arm\\
 
 [2] - ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition. arm Developer. (2011, November 23). Retrieved December 13, 2022, from https://developer.arm.com/documentation/ddi0406/c\\
 
 [3] - Iximeow. (2022, September 29). Arm decoders for the Yaxpeax Project. GitHub. Retrieved December 13, 2022, from https://github.com/iximeow/yaxpeax-arm
-\end{multicols}
+
 \end{document}
