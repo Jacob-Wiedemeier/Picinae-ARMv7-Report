@@ -137,10 +137,10 @@ Figure 4. Part of the handle\_compare definition.
 Figure 5. Setting a particular flag.
 
 \end{figure}
-With these side effects in mind, we were able to implement a structure that could generate a Picanae equivalent of the decoded ARMv7 instruction, with the IL statement generated fully describing the actions taken by the instruction on the processor, ie registers affected, operations executed, etc. The example provided in Figure 6 demonstrates how the decoded instructions correspond to their lifted counterpart. As you can see, the IL statement reveals all actions that the instruction is performing at time of execution, which is critical when proving correctness of a program's instructions
+With these side effects in mind, we were able to implement a structure that could generate a Picanae equivalent of the decoded ARMv7 instruction, with the IL statement generated fully describing the actions taken by the instruction on the processor, ie registers affected, operations executed, etc. The example provided in Figure 6 demonstrates how the decoded instructions correspond to their lifted counterpart. As you can see, the IL statement reveals all actions that the instruction is performing at time of execution, which is critical when proving correctness of a program's instructions.
 \begin{figure*}[!ht]
 \centering
-\includegraphics[width=0.5\linewidth]{set_flag_example.png}\\
+\includegraphics[width=0.8\linewidth]{arm2il_example.jpg}\\
 Figure 6. Lifting decoded instructions to the intermediate language.
 
 \end{figure*}
