@@ -26,6 +26,7 @@
 \usepackage{tabu}
 \usepackage{tcolorbox}
 \usepackage{graphicx}
+\usepackage{float}
 
 \hypersetup{
     colorlinks=true,
@@ -79,10 +80,9 @@
 \begin{document}
 
 \maketitle
+\begin{multicols}{2}
 
-\section*{Intro / Motivation}
-\vspace{0.3cm}
-\hrule
+\section*{\centering Intro / Motivation}
 \vspace{0.3cm}
 The main focus of this project is the creation of a novel ARM instruction decoder and lifter that takes ARMv7 assembly and lifts it to an intermediary language (IL), Picanae, that can be used for future works in proving the correctness of the ARM system.\\
 
@@ -90,17 +90,13 @@ ARM is the most widely used family of instruction set architectures, having a pr
 
 To our knowledge, while there are Picanae systems that target similar architectures like RISCV, there is no ARM focused decoder that lifts instructions from a binary up to Picanae for usage in proofs of correctness. As such, our prototype system is novel in its targeted architecture and application. 
 
-\pagebreak
-
-\section*{Technical Approach}
+\section*{\centering Technical Approach}
 \vspace{0.3cm}
-\hrule
-\vspace{0.3cm}
-We first approached the technical challenge of how to obtain the bytes to decode. Fortunately for us, as we are not supporting thumb mode, all ARMv7 instructions are 4 bytes long. However, as we are decoding ARMv7 binaries, we must be able to assemble ARMv7 instructions into their binary representation. For that, we used \href{https://cpulator.01xz.net/?sys=arm}{CPUlator}[1]. It can assemble ARMv7 instructions into their binary representations and even emulate them, as seen in Figure B.\\
+We first approached the technical challenge of how to obtain the bytes to decode. Fortunately for us, as we are not supporting thumb mode, all ARMv7 instructions are 4 bytes long. However, as we are decoding ARMv7 binaries, we must be able to assemble ARMv7 instructions into their binary representation. For that, we used \href{https://cpulator.01xz.net/?sys=arm}{CPUlator} [1]. It can assemble ARMv7 instructions into their binary representations and even emulate them, as seen in Figure 1.\\
 
-\begin{figure}[h]
-\includegraphics{cpulator_example.png}\\
-Figure B. Assembly of ARMv7 instructions.
+\begin{figure}[H]
+\includegraphics[width=\linewidth]{cpulator_example.png}\\
+Figure 1. Assembly of ARMv7 instructions.
 \centering
 \end{figure}
 
@@ -108,46 +104,41 @@ We found that using the CPUlator tool was very tedious. It required us to manual
 
 We had to convert the representation of the assembled instructions from hexadecimal to decimal for compatability with the Picanae system. This did not change any of the operations we could perform on the representation. We can still use critical methods such as xbits and shift.\\
 
-Once we have the instruction represented as a decimal, we are ready to decode it. In order to decode the instruction, we have to first understand the instruction encoding, as explained in the \href{https://developer.arm.com/documentation/ddi0406/c}{ARM Architecture Reference Manual} [2]. The architecture manual includes a chapter on how the instructions are precisely encoded down to the bit. It follows a tree-like structure of instruction types such as data-processing, load/store, branches, etc., as seen in Figure Z.  Once you’ve followed a branch by matching the specified bits, all instructions are of that type. This might go on for one or more recursive levels. This tree models a decision tree, where the internal nodes make decisions and the leaves are the instructions themselves, which are combinations of matches on the bits of its binary representation.\\
+Once we have the instruction represented as a decimal, we are ready to decode it. In order to decode the instruction, we have to first understand the instruction encoding, as explained in the \href{https://developer.arm.com/documentation/ddi0406/c}{ARM Architecture Reference Manual} [2]. The architecture manual includes a chapter on how the instructions are precisely encoded down to the bit. It follows a tree-like structure of instruction types such as data-processing, load/store, branches, etc., as seen in Figure 2.  Once you’ve followed a branch by matching the specified bits, all instructions are of that type. This might go on for one or more recursive levels. This tree models a decision tree, where the internal nodes make decisions and the leaves are the instructions themselves, which are combinations of matches on the bits of its binary representation.\\
 
-\begin{figure}[h]
-\includegraphics{top-level_decode.png}\\
-Figure Z. The top-level decoding definition.
+\begin{figure}[H]
+\includegraphics[width=\linewidth]{top-level_decode.png}\\
+Figure 2. The top-level decoding definition.
 \centering
 \end{figure}
 
 After reading the reference manual for a few weeks, we had a general understanding of the characteristics of the encodings. A vast majority of the instructions encoding contained a 4-bit conditional value that represented the condition that the instruction should be executed on, such as EQUAL, NOT\_EQUAL, LESS\_THAN, ALWAYS, etc. These conditions are evaluated based on four flags: N, V, C, and Z. If the right flags are set then the condition is true and so the instruction is executed. However, almost all instructions other than the branches used the ALWAYS condition, so we opted to ignore the rest at the moment to focus our efforts at more critical points.\\
 
-Another thing we learned was how common objects like registers and immediate values were encoded within the instruction bytes. Registers, which can range from r0, r1, …, r14 are represented as the 4-bit value 0, 1, …, 14, respectively. Immediate values are directly placed in the instruction bytes as 5, 12, or 16-bit values, usually on the lower-end side. Hence, grabbing the registers and immediate values was as simple as using xbits, as seen in Figure A.\\
+Another thing we learned was how common objects like registers and immediate values were encoded within the instruction bytes. Registers, which can range from r0, r1, …, r14 are represented as the 4-bit value 0, 1, …, 14, respectively. Immediate values are directly placed in the instruction bytes as 5, 12, or 16-bit values, usually on the lower-end side. Hence, grabbing the registers and immediate values was as simple as using xbits, as seen in Figure 3.\\
 
-\begin{figure}[h]
-\includegraphics{decode_immediate_example.png}\\
-Figure A. Example of decoding registers and immediates.
+\begin{figure}[H]
+\includegraphics[width=\linewidth]{decode_immediate_example.png}\\
+Figure 3. Example of decoding registers and immediates.
 \centering
 \end{figure}
 
 Lifting the decoded instructions was straightforward when the instruction did not have any side effects, such as setting or getting flags. Without side effects, lifting an instruction was a simple mapping from the decoded instruction and its values (registers and immediates) to the lifted one.\\
 
-Most instruction have side-effects, however. This includes setting certain flags within the ASPR register or setting certain registers to certain values in-addition to its primary effect. The solution to the former was verbose. Take the CMP instruction for example: if the value within the register minus the immediate value is zero, then set the Z flag to 1, otherwise set the Z flag to 0. There are 3 other flags that need to be set based on certain conditions as well, but for this example we will only look at the Z flag. We can model this in Picanae IL using If statements and expressions as seen in Figure X and Figure Y.\\
+Most instruction have side-effects, however. This includes setting certain flags within the ASPR register or setting certain registers to certain values in-addition to its primary effect. The solution to the former was verbose. Take the CMP instruction for example: if the value within the register minus the immediate value is zero, then set the Z flag to 1, otherwise set the Z flag to 0. There are 3 other flags that need to be set based on certain conditions as well, but for this example we will only look at the Z flag. We can model this in Picanae IL using If statements and expressions as seen in Figure 4 and Figure 5.\\
 
-\begin{figure}[h]
-\includegraphics{handle_compare_definition.png}\\
-Figure X. Part of the handle\_compare definition.
+\begin{figure}[H]
+\includegraphics[width=\linewidth]{handle_compare_definition.png}\\
+Figure 4. Part of the handle\_compare definition.
 \centering
 \end{figure}
 
-\begin{figure}[h]
-\includegraphics{set_flag_example.png}\\
-Figure Y. Setting a particular flag.
+\begin{figure}[H]
+\includegraphics[width=\linewidth]{set_flag_example.png}\\
+Figure 5. Setting a particular flag.
 \centering
 \end{figure}
 
-\clearpage % More aggressive form of \pagebreak used because page buffer was too full
-
-
-\section*{Team Organization}
-\vspace{0.3cm}
-\hrule
+\section*{\centering Team Organization}
 \vspace{0.3cm}
 
 \textbf{Corey Wingo}
@@ -174,19 +165,11 @@ Figure Y. Setting a particular flag.
 	\item Edited report and converted to LaTeX\\
 \end{itemize}
 
-\pagebreak
-
-\section*{Evaluation}
-\vspace{0.3cm}
-\hrule
+\section*{\centering Evaluation}
 \vspace{0.3cm}
 Work and answer goes here
 
-\pagebreak
-
-\section*{Future Work}
-\vspace{0.3cm}
-\hrule
+\section*{\centering Future Work}
 \vspace{0.3cm}
 
 The following list contains potential future work on the ARMv7 Decoder and Lifter. It is arranged in order of priority from top to bottom.\\
@@ -204,11 +187,8 @@ Supporting thumb mode is as simple as duplicating the existing code, except usin
 We currently do not support every side effect for the instructions we lifted. For example, we ignore instruction variants that depend on conditional flags to execute. Another lack of implementation is the CMP instruction, which has an immense number of side-effects and represents an imposing challenge to decode and lift.\\
 
 We do not support every instruction in the ARMv7 reference manual. There are about a hundred main instructions, each with many variants. We currently support approximately thirty main instructions.
-\pagebreak
 
-\section*{Related Work}
-\vspace{0.3cm}
-\hrule
+\section*{\centering Related Work}
 \vspace{0.3cm}
 
 There are many ARMv7 decoders out there that we used as references on how to design such a decoder.\\
@@ -217,11 +197,7 @@ There are many ARMv7 decoders out there that we used as references on how to des
 
 We also very heavily relied on a previous implementation of a decoder and lifter for the Picanae system for the RISC-V architecture. The Picanae system provides a number of formally verified methods that allow projects to create decoder frameworks without needing to re-verify the correctness of methods, such as binary operations and bit extraction from a decimal number. The aforementioned RISC-V implementation was able to use these helper methods to extract instruction bytes in order to successfully decode and lift the RISC-V instruction set to the Picanae IL, providing a path to formal verification of RISC-V binaries. Since RISC-V has a simpler instruction set compared to ARMv7, we were able to utilize this implementation as the base template for our own implementation, with informal verification of our lifted instructions being compared to those from RISC-V to determine if the instruction behavior functioned similarly to our own.
 
-\pagebreak
-
-\section*{Citations}
-\vspace{0.3cm}
-\hrule
+\section*{\centering Citations}
 \vspace{0.3cm}
 
 [1] - CPUlator ARMv7 System Simulator. (2019, March 9). Retrieved December 13, 2022, from \\https://cpulator.01xz.net/?sys=arm\\
@@ -229,5 +205,5 @@ We also very heavily relied on a previous implementation of a decoder and lifter
 [2] - ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition. arm Developer. (2011, November 23). Retrieved December 13, 2022, from https://developer.arm.com/documentation/ddi0406/c\\
 
 [3] - Iximeow. (2022, September 29). Arm decoders for the Yaxpeax Project. GitHub. Retrieved December 13, 2022, from https://github.com/iximeow/yaxpeax-arm
-
+\end{multicols}
 \end{document}
