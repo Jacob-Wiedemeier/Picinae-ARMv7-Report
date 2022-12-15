@@ -137,10 +137,10 @@ Figure 4. Part of the handle\_compare definition.
 Figure 5. Setting a particular flag.
 
 \end{figure}
-With these side effects in mind, we were able to implement a structure that could generate a Picanae equivalent of the decoded ARMv7 instruction, with the IL statement generated fully describing the actions taken by the instruction on the processor, ie registers affected, operations executed, etc. The example provided in Figure 6 demonstrates how the decoded instructions correspond to their lifted counterpart. As you can see, the IL statement reveals all actions that the instruction is performing at time of execution, which is critical when proving correctness of a program's instructions.
+With these side effects in mind, we were able to implement a structure that could generate a Picanae equivalent of the decoded ARMv7 instruction, with the IL statement generated fully describing the actions taken by the instruction on the processor, ie registers affected, operations executed, etc. The example provided in Figure 6 demonstrates how the decoded instructions correspond to their lifted counterpart. As you can see, the IL statement reveals all actions that the instruction is performing at time of execution, which is critical when proving correctness of a program's instructions
 \begin{figure*}[!ht]
 \centering
-\includegraphics[width=0.8\linewidth]{arm2il_example.jpg}\\
+\includegraphics[width=0.5\linewidth]{set_flag_example.png}\\
 Figure 6. Lifting decoded instructions to the intermediate language.
 
 \end{figure*}
@@ -153,18 +153,21 @@ Figure 6. Lifting decoded instructions to the intermediate language.
 \begin{itemize}
 	\item Project leader
 	\item Decoded and lifted a significant number of ARMv7 instructions
-	\item Presenter\\
+	\item Presenter
+ \item Contributed and edited report\\
 \end{itemize}
 
 
 \textbf{Saffat Ahmed}
 \begin{itemize}
-	\item Decoded and lifted a significant number of ARMv7 instructions\\
+	\item Decoded and lifted a significant number of ARMv7 instructions
+  \item Contributed and edited report \\
 \end{itemize}
 
 \textbf{Nolan Kuo}
 \begin{itemize}
-	\item Decoded and lifted a significant number of ARMv7 instructions\\
+	\item Decoded and lifted a significant number of ARMv7 instructions
+  \item Contributed and edited report\\
 \end{itemize}
 
 \textbf{Jacob Wiedemeier}
@@ -175,7 +178,12 @@ Figure 6. Lifting decoded instructions to the intermediate language.
 
 \section*{\centering Evaluation}
 \vspace{0.3cm}
-Work and answer goes here
+When we set out to complete this project, our goal was to build an ARMv7 instruction decoder/lifter framework that could successfully lift a stringlen binary. Based on this initial goal, it can be said that we were about 90\text{\%} successful with this project. We were able to fully decode instructions from the binary we picked out and lift all of the instruction except for a few, where their side effects were not lifted fully, namely the ADD\_imm and CMP\_imm instructions which are present in our target binary. This is because they contain severe side effects such as updating the 4 flags that ARMv7 has. We were not sure how to utilize the Picaane IL system to lift those side effects properly. \\
+
+To elaborate on the CMP\_imm instruction, which is central to branching in ARMv7, it needed to update all 4 flags based on the subtraction of a register value and an immediate value. If it was equal, set the Z flag to 1, otherwise 0. If the operation carried, then set the C flag to 1, otherwise 0. The problem we had was checking for this carry using the Picanae IL expressions as we couldn't use the COQ standard library or write our own because we had to operate on the Var ASPR that the Picanae system alone could only access.\\
+
+To compensate for the lack of side effects, we extended the framework to include more instructions that could be decoded and lifted into Picanae, rounding the amount of ARMv7 instructions supported by our decoder to roughly 30 instructions. In addition, a few instructions were added that could be decoded, but not lifted successfully by us due to their similarity to the mentioned CMP\_imm instruction and its side effects.
+
 
 \section*{\centering Future Work}
 \vspace{0.3cm}
@@ -188,13 +196,13 @@ The following list contains potential future work on the ARMv7 Decoder and Lifte
 	\item Support the entire instruction set\\
 \end{enumerate}
 
-Currently, we have not worked on verifying whether an instruction was lifted appropriately. A good method of verifying a lifted instruction would be running it within the Picanae System and observing its primary and side effects.\\
+Currently, we have not worked on verifying whether an instruction was lifted appropriately. A good method of verifying a lifted instruction would be running it within the Picanae System and observing its primary and side effects. This could be accomplished through running exhaustive tests on instructions with other existing decoders such as BinaryAnalysisPlatform and Angr and comparing their lifted instruction set to the Picanae lifted instruction to verify the correctness of the framework.\\
 
-Supporting thumb mode is as simple as duplicating the existing code, except using encoding TX for the instruction within the ARMv7 Reference Manual. The decoding and lifting would need to be matched using different paths as they have different patterns and instruction parameters, such as different bit-width immediate values and registers. This would be tedious, but fairly easy, as you can reference the existing code.\\
+Supporting thumb mode is as simple as duplicating the existing code, except using encoding TX for the instruction within the ARMv7 Reference Manual. The decoding and lifting would need to be matched using different paths as they have different patterns and instruction parameters, such as different bit-width immediate values and registers. This would be tedious, but fairly easy, as one could reference the existing code. One could also utilize a variable related to the decoder state in order to track when the binary transitions in and out of thumb mode in order to better lift all the effects of the instruction.\\
 
-We currently do not support every side effect for the instructions we lifted. For example, we ignore instruction variants that depend on conditional flags to execute. Another lack of implementation is the CMP instruction, which has an immense number of side-effects and represents an imposing challenge to decode and lift.\\
+We currently do not support every side effect for the instructions we lifted. For example, we ignore instruction variants that depend on conditional flags to execute. Another lack of implementation is the CMP instruction, which has an immense number of side-effects and represents an imposing challenge to decode and lift. Future work should focus on supporting these side effects and expanding the Picanae system to account for carry variables, which entails proving the correctness of those operations. \\
 
-We do not support every instruction in the ARMv7 reference manual. There are about a hundred main instructions, each with many variants. We currently support approximately thirty main instructions.
+We do not support every instruction in the ARMv7 reference manual. There are about a hundred main instructions, each with many variants. We currently support approximately thirty main instructions, many of which have a similar side effect issue to the aforementioned CMP instruction.
 
 \section*{\centering Related Work}
 \vspace{0.3cm}
@@ -205,10 +213,25 @@ There are many ARMv7 decoders out there that we used as references on how to des
 
 We also very heavily relied on a previous implementation of a decoder and lifter for the Picanae system for the RISC-V architecture. The Picanae system provides a number of formally verified methods that allow projects to create decoder frameworks without needing to re-verify the correctness of methods, such as binary operations and bit extraction from a decimal number. The aforementioned RISC-V implementation was able to use these helper methods to extract instruction bytes in order to successfully decode and lift the RISC-V instruction set to the Picanae IL, providing a path to formal verification of RISC-V binaries. Since RISC-V has a simpler instruction set compared to ARMv7, we were able to utilize this implementation as the base template for our own implementation, with informal verification of our lifted instructions being compared to those from RISC-V to determine if the instruction behavior functioned similarly to our own.
 
+\section*{\centering Setup Instructions}
+\vspace{0.3cm}
+
+The framework for both the ARMv7 deocder and the subsequent lifter to the Picanae IL are compiled using Coq, namely (insert Coq version here), and is currently located within a single (insert file name).v file. Given the IL base, it is recommended to run the Coq file from within the Picanae system folder, provided that the project has been compiled and built into a library for the .v file to be utilized. The file includes the selected stringlen binary ARMv7 instruction code, alongside the corresponding decimal values that the decoder reads in order to successfully decode the instruction. In addition to the values from the test binary, the file also contains several computed statements that use decimal values corresponding to all of the instructions supported by our framework, but not present within the selected test binary. Running the file through each instruction should yield a successful run as one steps through the instruction set.\\
+
+We have also included a Python3 script that is capable of parsing an ARMv7 binary and dumping the decimal representation of each instruction into a Coq .v file. Currently, due to the nature of how the script is meant to interact with binaries, the script currently only works on Linux environments. Our own environment was Ubuntu (insert version here). In order to parse custom binaries, the following steps must be taken.
+
+\begin{enumerate}
+	\item Ensure that the Linux distribution being utilized has the standard Python library installed
+	\item In terminal, run "apt-get install binutils-arm-linux-gnueabi" to install the library used to parse ARMv7 binaries
+	\item With both the python script and the binary in the same location, execute "python Picinae\_ARM\_to\_Function.py (name of ARMv7 binary file) in order to generate a Coq .v file to transfer the decimal representations to our (insert coq file name).v file for decoding and lifting.
+\\
+\end{enumerate}
+
+
 \section*{\centering Citations}
 \vspace{0.3cm}
 
-[1] - CPUlator ARMv7 System Simulator. (2019, March 9). Retrieved December 13, 2022, from https://cpulator.01xz.net/?sys=arm\\
+[1] - CPUlator ARMv7 System Simulator. (2019, March 9). Retrieved December 13, 2022, from \\https://cpulator.01xz.net/?sys=arm\\
 
 [2] - ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition. arm Developer. (2011, November 23). Retrieved December 13, 2022, from https://developer.arm.com/documentation/ddi0406/c\\
 
